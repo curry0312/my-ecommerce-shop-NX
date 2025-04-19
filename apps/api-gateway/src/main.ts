@@ -8,7 +8,6 @@ import cors from "cors";
 import proxy from "express-http-proxy";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import swaggerUi from "swagger-ui-express";
 import cookie from "cookie-parser";
 import cookieParser from "cookie-parser";
 
@@ -44,14 +43,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.get("/gateway-health", (req, res) => {
-  res.send({ message: "Welcome to api-gateway!" });
-});
-
 app.use("/", proxy("http://localhost:6001"));
 
 const port = process.env.PORT || 8080;
+
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/api`);
 });
+
 server.on("error", console.error);
