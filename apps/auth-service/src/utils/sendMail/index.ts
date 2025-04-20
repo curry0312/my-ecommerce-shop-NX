@@ -23,6 +23,7 @@ const renderEmailTemplate = async (
   // Point to the path of your EJS template
   const templatePath = path.join(
     process.cwd(),
+    "apps",
     "auth-service",
     "src",
     "utils",

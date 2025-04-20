@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title><%= subject %></title>
+  <title>Your Verification Code</title>
   <style>
     body { font-family: Arial, sans-serif; color: #333; line-height: 1.4; }
     .container { max-width: 600px; margin: auto; padding: 20px; }
@@ -20,17 +20,17 @@
 <body>
   <div class="container">
     <div class="header">
-      <h2><%= companyName %> — Your Verification Code</h2>
+      <h2>Your Verification Code</h2>
     </div>
 
-    <p>Hi <strong><%= userName %></strong>,</p>
+    <p>Hi <strong><%= name %></strong>,</p>
     <p>Your one‑time password (OTP) is:</p>
-    <div class="otp-code"><%= otpCode %></div>
-    <p>This code will expire in <%= expireMinutes %> minutes.</p>
+    <div class="otp-code"><%= otp %></div>
+    <p>This code will expire in 5 minutes.</p>
     <p>If you didn’t request this, please ignore this email.</p>
 
     <div class="footer">
-      &copy; <%= new Date().getFullYear() %> <%= companyName %>. All rights reserved.
+      &copy; <%= new Date().getFullYear() %> Your Company All rights reserved.
     </div>
   </div>
 </body>

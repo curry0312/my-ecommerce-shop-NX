@@ -1,10 +1,16 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import Redis from "ioredis";
 
+const redisUrl = process.env.REDIS_URL;
 
-const redis = new Redis({
-    host: process.env.REDIS_HOST || "127.0.0.1",
-    port: Number(process.env.REDIS_PORT) || 6379,
-    password: process.env.REDIS_PASSWORD
-});
+console.log('RedisUrl is connected', redisUrl);
 
-export default redis
+if (!redisUrl) {
+  throw new Error('REDIS_URL environment variable is not set');
+}
+
+const redis = new Redis(redisUrl); // 支援 rediss:// (TLS)
+
+export default redis;
