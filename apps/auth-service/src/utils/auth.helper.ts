@@ -33,7 +33,7 @@ export const trackOtpRequests = async (email: string) => {
 
   if (otpRequests && Number(otpRequests) >= 3) {
     await redis.set(redisKey.otp_spam_lock(email), "true", "EX", 3600); // 1 hour
-
+    await redis.del(redisKey.otp_request_count(email));
     throw new ValidationError(
       `Too many OTP requests! Please try again after 1 hours`
     );
