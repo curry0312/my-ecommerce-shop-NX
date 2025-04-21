@@ -13,9 +13,6 @@
       "path": "./apps/api-gateway"
     },
     {
-      "path": "./apps/my-new-app"
-    },
-    {
       "path": "./apps/user-ui-frontend"
     }
   ]

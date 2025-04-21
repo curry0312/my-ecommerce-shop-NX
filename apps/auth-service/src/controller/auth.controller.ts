@@ -182,10 +182,10 @@ export const userForgotPassword = async (
       return next(new ValidationError(`User with email ${email} not found`));
     }
 
-    checkOtpRestrictions(email);
+    await checkOtpRestrictions(email);
     await trackOtpRequests(email);
     await sendOtp(user.name, email, "user-forgot-password-mail");
-
+ 
     return res.status(200).json({
       message: "OTP sent successfully",
     });
