@@ -5,16 +5,13 @@ import FormatAlignLeftOutlinedIcon from "@mui/icons-material/FormatAlignLeftOutl
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
 import { navItems } from "apps/user-ui-frontend/src/config/constants";
 import Link from "next/link";
-import PersonIcon from "@mui/icons-material/Person";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
+import HeaderUser from "./HeaderUser";
 
 export default function HeaderBottom() {
   const [open, setOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
 
   //Track scroll position
-
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 100) {
@@ -79,38 +76,7 @@ export default function HeaderBottom() {
           ))}
         </div>
 
-        <div>
-          {isSticky && (
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="border-2 w-[50px] h-[50px] flex items-center justify-center rounded-full "
-                >
-                  <PersonIcon style={{ color: "#3489FF", fontSize: "2rem" }} />
-                </Link>
-                <Link href="/register">
-                  <span className="block font-medium">Hello, </span>
-                  <span className="block font-bold">Sign in</span>
-                </Link>
-              </div>
-              <div className="flex items-center gap-5">
-                <Link href="/cart" className="relative">
-                  <ShoppingCartOutlinedIcon />
-                  <div className="w-6 h-6 border-2 border-white bg-[#3489FF] rounded-full flex items-center justify-center absolute top-[-10px] right-[-10px]">
-                    <span className="block text-white font-medium">0</span>
-                  </div>
-                </Link>
-                <Link href="/wishlist" className="relative">
-                  <FavoriteBorderIcon />
-                  <div className="w-6 h-6 border-2 border-white bg-red-500 rounded-full flex items-center justify-center absolute top-[-10px] right-[-10px]">
-                    <span className="block text-white font-medium">0</span>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+        <div>{isSticky && <HeaderUser />}</div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import "./global.css";
-import Header from "../shared/widgets/header";
 import { Poppins, Roboto } from "next/font/google";
 import Providers from "./providers";
+import Header from "../shared/widgets/header";
 
 export const metadata = {
   title: "My-shop",

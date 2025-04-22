@@ -8,13 +8,12 @@ export const isAuthenticated = async (
   res: Response,
   next: NextFunction
 ) => {
-  const accessToken =
-    req.headers.authorization?.split(" ")[1] || req.cookies.access_token;
+  const accessToken = req.cookies.accessToken || req.headers.authorization;
 
   if (!accessToken) {
     return res.status(401).json({
       status: 401,
-      message: "no token",
+      message: "no accessToken found",
     });
   }
 
