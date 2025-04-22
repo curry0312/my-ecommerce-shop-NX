@@ -2,20 +2,20 @@ import { NextFunction, Request, Response } from "express";
 import { ValidationError } from "@packages/error-handler";
 import { z } from "zod";
 
-const loginSchema = z.object({
+const VerifyUserSchema = z.object({
   email: z.string().email("Invalid email format"),
+  otp: z.string().min(1, "OTP is required"),
+  name: z.string().min(1, "Name is required"),
   password: z.string().min(1, "Password is required"),
 });
 
-export type loginDataBody = z.infer<typeof loginSchema>;
-
-export const validateLoginData = (
+export const validateVerifyUserData = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    loginSchema.parse(req.body);
+    VerifyUserSchema.safeParse(req.body);
     next();
   } catch (err) {
     next(new ValidationError("User registration data validation failed", err));

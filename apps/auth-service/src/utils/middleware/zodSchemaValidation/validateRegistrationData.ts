@@ -27,7 +27,12 @@ export const validateUserRegistration = (
     userRegistrationSchema.parse(req.body);
     next();
   } catch (err) {
-    next(new ValidationError("User registration data validation failed", err));
+    next(
+      new ValidationError("User registration data validation failed", {
+        error: err,
+        schema: userRegistrationSchema,
+      })
+    );
   }
 };
 export const validateSellerRegistration = (
@@ -36,9 +41,14 @@ export const validateSellerRegistration = (
   next: NextFunction
 ) => {
   try {
-    sellerRegistrationSchema.parse(req.body);
+    sellerRegistrationSchema.safeParse(req.body);
     next();
   } catch (err) {
-    next(new ValidationError("User registration data validation failed", err));
+    next(
+      new ValidationError("User registration data validation failed", {
+        error: err,
+        schema: sellerRegistrationSchema,
+      })
+    );
   }
 };

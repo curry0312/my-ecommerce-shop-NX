@@ -6,12 +6,12 @@ import {
   verifyOtp,
 } from "../utils/auth.helper";
 import prisma from "@packages/libs/prisma";
-import { ValidationError } from "@packages/error-handler";
+import { AuthError, ValidationError } from "@packages/error-handler";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { UserRegistrationBody } from "../utils/middleware/validateRegistrationData";
+import jwt, { JsonWebTokenError } from "jsonwebtoken";
+import { UserRegistrationBody } from "../utils/middleware/zodSchemaValidation/validateRegistrationData";
 import { setCookie } from "../utils/cookie/setCookie";
-import { loginDataBody } from "../utils/middleware/validateLoginData";
+import { loginDataBody } from "../utils/middleware/zodSchemaValidation/validateLoginData";
 
 //handle Registration for a new user
 export const userRegistration = async (
@@ -92,6 +92,7 @@ export const verifyUserOtp = async (
   }
 };
 
+//User Login
 export const userLogin = async (
   req: Request,
   res: Response,
@@ -160,6 +161,93 @@ export const userLogin = async (
   });
 };
 
+//Get User Details
+export const getUser = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = req.user;
+
+    return res.status(200).json({
+      message: "User details fetched successfully",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+//refresh token user
+export const refreshAccessToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const refreshToken = req.cookies["refreshToken"];
+
+  if (!refreshToken) {
+    return next(new ValidationError(`Missing refresh token`));
+  }
+
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESHTOKEN_SECRET as string
+    ) as { id: string; role: string };
+
+    if (!decoded || !decoded.id || !decoded.role) {
+      return next(new JsonWebTokenError(`Invalid refresh token`));
+    }
+
+    const user = await prisma.users.findUnique({
+      where: {
+        id: decoded.id,
+      },
+    });
+
+    if (!user) {
+      return next(new AuthError(`User not found`));
+    }
+
+    // const newRefreshToken = jwt.sign(
+    //   { id: user.id, role: "user" },
+    //   process.env.JWT_REFRESHTOKEN_SECRET as string,
+    //   {
+    //     expiresIn: "7d",
+    //   }
+    // );
+
+    const newAccessToken = jwt.sign(
+      { id: user.id, role: "user" },
+      process.env.JWT_ACCESSTOKEN_SECRET as string,
+      {
+        expiresIn: "15m",
+      }
+    );
+
+    setCookie(res, "accessToken", newAccessToken);
+    // setCookie(res, "refreshToken", newRefreshToken);
+
+    return res.status(200).json({
+      message: "accessToken refreshed successfully",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        "access-token": newAccessToken,
+        // "refresh-token": newRefreshToken,
+      },
+    });
+  } catch (error) {}
+};
+
+//User forgot password
 export const userForgotPassword = async (
   req: Request,
   res: Response,
@@ -185,7 +273,7 @@ export const userForgotPassword = async (
     await checkOtpRestrictions(email);
     await trackOtpRequests(email);
     await sendOtp(user.name, email, "user-forgot-password-mail");
- 
+
     return res.status(200).json({
       message: "OTP sent successfully",
     });
@@ -194,6 +282,7 @@ export const userForgotPassword = async (
   }
 };
 
+//User verify otp for forgot password
 export const verifyForgotPasswordOtp = async (
   req: Request,
   res: Response,
@@ -213,8 +302,9 @@ export const verifyForgotPasswordOtp = async (
   } catch (error) {
     return next(error);
   }
-}
+};
 
+//User reset password
 export const userResetPassword = async (
   req: Request,
   res: Response,
