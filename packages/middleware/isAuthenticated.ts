@@ -1,14 +1,16 @@
 import prisma from "@packages/libs/prisma";
-import { NextFunction, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-
 export const isAuthenticated = async (
-  req: any,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const accessToken = req.cookies.accessToken || req.headers.authorization;
+  const accessToken =
+    req.cookies.accessToken ||
+    req.cookies["seller-accessToken"] ||
+    req.headers.authorization;
 
   if (!accessToken) {
     return res.status(401).json({
@@ -23,7 +25,7 @@ export const isAuthenticated = async (
       process.env.JWT_ACCESSTOKEN_SECRET as string
     ) as {
       id: string;
-      role: string;
+      role: "user" | "seller";
     };
 
     if (!decoded) {
@@ -33,19 +35,31 @@ export const isAuthenticated = async (
       });
     }
 
-    const user = await prisma.users.findUnique({
-      where: {
-        id: decoded.id,
-      },
-    });
+    let account;
 
-    if (!user) {
+    if (decoded.role === "user") {
+      account = await prisma.users.findUnique({
+        where: {
+          id: decoded.id,
+        },
+      });
+    } else {
+      account = await prisma.sellers.findUnique({
+        where: {
+          id: decoded.id,
+        },
+      });
+    }
+
+    if (!account) {
       return res.status(401).json({
         status: 401,
         message: "Account not found",
       });
     }
-    req.user = user;
+
+    req.user = account;
+    req.role = decoded.role;
 
     return next();
   } catch (error) {
