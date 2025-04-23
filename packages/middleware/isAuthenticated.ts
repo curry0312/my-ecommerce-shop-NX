@@ -1,4 +1,4 @@
-import prisma from "@packages/libs/prisma";
+import prisma from "@packages/libs/prisma/index.js";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
