@@ -3,7 +3,8 @@ import {
   createShop,
   getSeller,
   getUser,
-  refreshAccessToken,
+  refreshSellerAccessToken,
+  refreshUserAccessToken,
   sellerForgotPassword,
   sellerLogin,
   sellerRegistration,
@@ -51,7 +52,7 @@ authRouter.post("/reset-password-user", userResetPassword);
 authRouter.post("/verify-forgot-password-user", verifyForgotPasswordOtp);
 
 //handle refresh access token
-authRouter.post("/refresh-token-user", refreshAccessToken);
+authRouter.post("/refresh-token-user", refreshUserAccessToken);
 
 //get logged in user info, if user is not logged in, return error
 authRouter.get("/get-logged-in-user", isAuthenticated, isUser, getUser);
@@ -71,6 +72,9 @@ authRouter.post("/create-shop", createShop);
 authRouter.post("/login-seller", sellerLogin);
 
 authRouter.get("/get-logged-in-seller", isAuthenticated, isSeller, getSeller);
+
+//handle refresh access token for seller
+authRouter.post("/refresh-token-seller", refreshSellerAccessToken);
 
 authRouter.post("/forgot-seller-password", sellerForgotPassword);
 

@@ -16,7 +16,6 @@ import {
 import { setCookie } from "../utils/cookie/setCookie";
 import { loginDataBody } from "../utils/middleware/zodSchemaValidation/validateLoginData";
 
-
 //!User
 //handle Registration for a new user
 export const userRegistration = async (
@@ -161,8 +160,8 @@ export const userLogin = async (
       id: user.id,
       name: user.name,
       email: user.email,
-      "access-token": accessToken,
-      "refresh-token": refreshToken,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
     },
   });
 };
@@ -181,8 +180,8 @@ export const getUser = async (req: any, res: Response, next: NextFunction) => {
   }
 };
 
-//refresh token user
-export const refreshAccessToken = async (
+//refresh accessToken for user
+export const refreshUserAccessToken = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -383,41 +382,6 @@ export const sellerRegistration = async (
   }
 };
 
-//Seller forgot password
-export const sellerForgotPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return next(new ValidationError(`Missing required fields`));
-    }
-
-    const user = await prisma.sellers.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) {
-      return next(new ValidationError(`Seller with email ${email} not found`));
-    }
-
-    await checkOtpRestrictions(email);
-    await trackOtpRequests(email);
-    await sendOtp(user.name, email, "seller-forgot-password-mail");
-
-    return res.status(200).json({
-      message: "OTP sent successfully",
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
-
 //Verify seller otp
 export const verifySellerOtp = async (
   req: Request,
@@ -479,7 +443,7 @@ export const sellerLogin = async (
     return next(new ValidationError(`Missing required fields`));
   }
 
-  const seller = await prisma.users.findUnique({
+  const seller = await prisma.sellers.findUnique({
     where: {
       email,
     },
@@ -498,8 +462,6 @@ export const sellerLogin = async (
   }
 
   const isPasswordMatched = await bcrypt.compare(password, seller.password);
-
-  console.log("isPasswordMatched =", isPasswordMatched);
 
   if (!isPasswordMatched) {
     return next(new ValidationError(`Invalid password`));
@@ -525,15 +487,134 @@ export const sellerLogin = async (
   setCookie(res, "seller-refreshToken", refreshToken);
 
   res.status(200).json({
-    message: "User logged in successfully",
+    message: "Seller logged in successfully",
     data: {
       id: seller.id,
       name: seller.name,
       email: seller.email,
-      "access-token": accessToken,
-      "refresh-token": refreshToken,
+      "seller-accessToken": accessToken,
+      "seller-refreshToken": refreshToken,
     },
   });
+};
+
+//Seller forgot password
+export const sellerForgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return next(new ValidationError(`Missing required fields`));
+    }
+
+    const user = await prisma.sellers.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      return next(new ValidationError(`Seller with email ${email} not found`));
+    }
+
+    await checkOtpRestrictions(email);
+    await trackOtpRequests(email);
+    await sendOtp(user.name, email, "seller-forgot-password-mail");
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+//refresh token user
+// 📱 Client 請求帶上 accessToken
+//    ↓
+// 🛡️ Server 嘗試 jwt.verify(accessToken)
+//    ↓
+//  ┌─────────────────────────────┐
+//  │ accessToken 有效嗎？        │
+//  └─────────────────────────────┘
+//          │是                         │否
+//          ↓                          ↓
+//  🎯 回傳成功資料           🛑 回傳 401 Unauthorized
+//                               ↓
+//                    📱 Client 偵測 401
+//                               ↓
+//           🔁 自動發送 refreshToken 給 /api/refresh-token
+//                               ↓
+//          🛡️ Server 驗證 refreshToken（verify + 查資料庫）
+//                               ↓
+//  ┌─────────────────────────────┐
+//  │ refreshToken 有效嗎？       │
+//  └─────────────────────────────┘
+//          │是                         │否
+//          ↓                          ↓
+//  🔄 簽發新 accessToken     ❌ 回傳 401 + 強制登出
+//          ↓
+//  📱 Client 儲存新 accessToken，再重試原本 API 請求
+
+export const refreshSellerAccessToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const refreshToken = req.cookies["seller-refreshToken"];
+
+  if (!refreshToken) {
+    return next(new ValidationError(`Missing refresh token`));
+  }
+
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESHTOKEN_SECRET as string
+    ) as { id: string; role: string };
+
+    console.log("decoded =", decoded);
+
+    if (!decoded || !decoded.id || !decoded.role) {
+      return next(new JsonWebTokenError(`Invalid refresh token`));
+    }
+
+    const seller = await prisma.sellers.findUnique({
+      where: {
+        id: decoded.id,
+      },
+    });
+
+    if (!seller) {
+      return next(new AuthError(`Seller not found`));
+    }
+
+    const newAccessToken = jwt.sign(
+      { id: seller.id, role: "seller" },
+      process.env.JWT_ACCESSTOKEN_SECRET as string,
+      {
+        expiresIn: "15m",
+      }
+    );
+
+    setCookie(res, "seller-accessToken", newAccessToken);
+
+    return res.status(200).json({
+      message: "seller-accessToken refreshed successfully",
+      data: {
+        id: seller.id,
+        name: seller.name,
+        email: seller.email,
+        "access-token": newAccessToken,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 //get seller
@@ -543,17 +624,7 @@ export const getSeller = async (
   next: NextFunction
 ) => {
   try {
-    const sellerId = req.seller;
-    const seller = await prisma.sellers.findUnique({
-      where: {
-        id: sellerId,
-      },
-    });
-
-    if (!seller) {
-      return next(new ValidationError(`Seller with id ${sellerId} not found`));
-    }
-
+    const seller = req.account;
     return res.status(200).json({ message: "Seller found", data: seller });
   } catch (error) {
     return next(error);
@@ -604,8 +675,5 @@ export const createShop = async (
   }
 };
 
-
 //!Payment
 //create stripe account
-
-

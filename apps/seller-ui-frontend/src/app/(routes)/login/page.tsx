@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import RemoveRedEyeOutlinedIcon from "@mui/icons-material/RemoveRedEyeOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { useMutation } from "@tanstack/react-query";
@@ -47,7 +46,7 @@ export default function page() {
     onSuccess: (data) => {
       console.log(data);
       setServerError(null);
-      router.push("/");
+      router.push("/dashboard");
     },
     onError: (error: AxiosError) => {
       console.log(error);

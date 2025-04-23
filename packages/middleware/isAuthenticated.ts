@@ -48,6 +48,13 @@ export const isAuthenticated = async (
         where: {
           id: decoded.id,
         },
+        include: {
+          shop: {
+            where: {
+              sellerId: decoded.id,
+            }
+          }
+        },
       });
     }
 
@@ -58,7 +65,9 @@ export const isAuthenticated = async (
       });
     }
 
-    req.user = account;
+    console.log("account", account);
+
+    req.account = account;
     req.role = decoded.role;
 
     return next();
