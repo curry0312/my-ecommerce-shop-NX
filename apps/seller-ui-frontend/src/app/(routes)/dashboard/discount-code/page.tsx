@@ -29,6 +29,8 @@ type CreateDiscountCodeSchemaType = z.infer<typeof CreateDiscountCodeSchema>;
 
 export default function page() {
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteDiscountCodeId, setDeleteDiscountCodeId] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -48,10 +50,7 @@ export default function page() {
     },
   });
 
-  const {
-    data: discountCodes,
-    isLoading,
-  } = useQuery({
+  const { data: discountCodes, isLoading } = useQuery({
     queryKey: ["discount-codes"],
     queryFn: getDiscountCodes,
     staleTime: 5 * 60 * 1000, //cache for 5 minutes
@@ -82,6 +81,12 @@ export default function page() {
 
   const handleDeleteClick = (id: string) => {
     console.log(id);
+    setShowDeleteModal(true);
+    setDeleteDiscountCodeId(id);
+  };
+
+  const handleDelete = (id: string) => {
+    setShowDeleteModal(false);
     deleteDiscountMutation.mutate(id);
     toast.success("Discount code deleted successfully");
   };
@@ -98,7 +103,7 @@ export default function page() {
       discountType: data.discountType,
     });
 
-    return
+    return;
   };
 
   return (
@@ -272,6 +277,53 @@ export default function page() {
                 </p>
               )}
             </form>
+          </div>
+        </div>
+      )}
+      {showDeleteModal && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-gray-800 p-6 rounded-lg w-[450px] shadow-lg">
+            <div className="flex justify-between items-center border-b border-gray-700 pb-3">
+              <h3 className="text-lg font-semibold text-white">
+                Delete Discount
+              </h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-300 transition"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-6 h-6"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-white">
+                Are you sure you want to delete this discount code?
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg mt-4">
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteDiscountCodeId)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg mt-4"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
