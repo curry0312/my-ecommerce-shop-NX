@@ -10,6 +10,7 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import cookie from "cookie-parser";
 import cookieParser from "cookie-parser";
+import initializeConfig from "./libs/initialSideConfig.ts";
 
 const app = express();
 
@@ -43,12 +44,18 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+app.use("/product", proxy("http://localhost:6002"));
 app.use("/", proxy("http://localhost:6001"));
 
 const port = process.env.PORT || 8080;
 
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/api`);
+  try {
+    initializeConfig();
+    console.log(`Site config initialized successfully`);
+  } catch (error) {
+    console.log("Failed to initialize site config", error);
+  }
 });
-
 server.on("error", console.error);

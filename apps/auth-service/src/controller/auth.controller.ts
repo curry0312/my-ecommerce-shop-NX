@@ -624,8 +624,22 @@ export const getSeller = async (
   next: NextFunction
 ) => {
   try {
-    const seller = req.account;
-    return res.status(200).json({ message: "Seller found", data: seller });
+    const sellerId = req.account.id;
+
+    if (!sellerId) {
+      return next(new ValidationError(`Seller not found`));
+    }
+
+    const user = await prisma.sellers.findUnique({
+      where: {
+        id: sellerId,
+      },
+      include: {
+        shop: true,
+      }
+    });
+
+    return res.status(200).json({ message: "Seller found", data: user });
   } catch (error) {
     return next(error);
   }

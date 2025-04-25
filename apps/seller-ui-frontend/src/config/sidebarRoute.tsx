@@ -6,6 +6,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import LogoutIcon from "@mui/icons-material/Logout";
+import DiscountIcon from '@mui/icons-material/Discount';
 
 import type { ReactNode } from "react";
 
@@ -54,6 +55,11 @@ export const SIDEBARROUTES: SidebarGroup[] = [
   {
     title: "Others",
     routes: [
+      {
+        title: "Discount Codes",
+        icon: <DiscountIcon />,
+        href: "/dashboard/discount-code",
+      },
       {
         title: "Mailbox",
         icon: <EmailIcon />,

@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { AppError } from ".";
+import { AppError } from "./index.js";
 
 //! They are only called when next(err) is used in any preceding middleware or route.
 export const errorMiddleware = (err: any, req: Request, res: Response, next: NextFunction) => {

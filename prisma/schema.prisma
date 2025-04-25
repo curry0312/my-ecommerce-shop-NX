@@ -43,13 +43,14 @@ model sellers {
   phone_number String
   country      String
 
-  stripeId     String?
+  shop   shops?
+  shopId String? @unique @db.ObjectId
 
-  shop         shops?
-  shopId       String? @unique @db.ObjectId
+  discount_codes discount_codes[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
 }
 
 model shopReviews {
@@ -78,8 +79,26 @@ model shops {
   ratings      Float         @default(0)
   reviews      shopReviews[]
 
-  seller       sellers @relation(fields: [sellerId], references: [id])
-  sellerId     String  @unique @db.ObjectId
+  seller   sellers @relation(fields: [sellerId], references: [id])
+  sellerId String  @unique @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model site_config {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  categories String[]
+}
+
+model discount_codes {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  title String
+  discountValue String
+  discountCode String @unique
+  discountType String
+  sellerId String @db.ObjectId
+  seller sellers @relation(fields: [sellerId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,3 +1,4 @@
+import { Toaster } from "react-hot-toast";
 import "./global.css";
 import Provider from "./provider";
 import { Poppins } from "next/font/google";
@@ -22,6 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`bg-slate-900 ${poppins.className}`}>
         <Provider>{children}</Provider>
+        <Toaster />
       </body>
     </html>
   );

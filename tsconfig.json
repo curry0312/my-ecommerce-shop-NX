@@ -20,6 +20,9 @@
     },
     {
       "path": "./packages"
+    },
+    {
+      "path": "./apps/product-service"
     }
   ]
 }
