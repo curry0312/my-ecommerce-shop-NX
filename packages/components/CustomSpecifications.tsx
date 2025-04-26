@@ -10,15 +10,14 @@ export default function CustomSpecifications({ control, errors }: any) {
     name: "custom_specifications",
   });
   return (
-    <div>
-      <label htmlFor="">Custom Specifications</label>
+    <>
+      <label className="block font-semibold text-gray-300 mb-1">Custom Specifications</label>
       <div className="flex flex-col gap-3">
         {fields?.map((item, index) => (
           <div key={index} className="flex items-center gap-3">
             <Controller
               control={control}
               name={`custom_specifications.${index}.name`}
-              rules={{ required: "Specification name is required" }}
               render={({ field }) => (
                 <Input
                   label="Specification Name"
@@ -30,7 +29,6 @@ export default function CustomSpecifications({ control, errors }: any) {
             <Controller
               control={control}
               name={`custom_specifications.${index}.value`}
-              rules={{ required: "Specification value is required" }}
               render={({ field }) => (
                 <Input
                   label="Specification value"
@@ -59,6 +57,6 @@ export default function CustomSpecifications({ control, errors }: any) {
           {errors.custom_specifications.message}
         </span>
       )}
-    </div>
+    </>
   );
 }

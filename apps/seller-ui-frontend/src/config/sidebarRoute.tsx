@@ -43,7 +43,7 @@ export const SIDEBARROUTES: SidebarGroup[] = [
       {
         title: "All Products",
         icon: <ListAltIcon />,
-        href: "/dashboard/all-product",
+        href: "/dashboard/all-products",
       },
       {
         title: "Create Product",

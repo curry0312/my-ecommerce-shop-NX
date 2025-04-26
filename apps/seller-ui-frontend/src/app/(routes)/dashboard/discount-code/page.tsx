@@ -56,7 +56,6 @@ export default function page() {
     staleTime: 5 * 60 * 1000, //cache for 5 minutes
     retry: 1,
   });
-  console.log("discountCodes", discountCodes);
 
   const discountCodesData = useMemo(
     () => discountCodes?.data || [],

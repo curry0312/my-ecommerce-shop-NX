@@ -12,7 +12,7 @@ type GetDiscountCodesResponse = {
 
 export const getDiscountCodes = async (): Promise<GetDiscountCodesResponse> => {
   const res = await axiosInstance.get(
-    `${process.env.NEXT_PUBLIC_API_URL}/product/api/get-discountCode`,
+    `${process.env.NEXT_PUBLIC_API_URL}/product/api/get-discountCodes`,
     {
       withCredentials: true,
     }

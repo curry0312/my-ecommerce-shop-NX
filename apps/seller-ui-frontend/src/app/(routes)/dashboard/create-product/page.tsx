@@ -8,12 +8,24 @@ import ImagePlaceHolder from "apps/seller-ui-frontend/src/components/ImagePlaceH
 import { useState } from "react";
 import Input from "packages/components/Input";
 import CustomSpecifications from "packages/components/CustomSpecifications";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCategories } from "apps/seller-ui-frontend/src/axios/getCategories";
+import { getDiscountCodes } from "apps/seller-ui-frontend/src/axios/getDiscountCodes";
+import { createProduct } from "apps/seller-ui-frontend/src/axios/createProduct";
+import toast from "react-hot-toast";
 
 const CreateProductSchema = z.object({
   title: z.string().min(1, "Name is required"),
-  price: z.number().min(1, "Price is required"),
+  price: z
+    .string()
+    .min(1, "Price is required")
+    .refine((val) => !isNaN(Number(val)), {
+      message: "Price must be a number",
+    })
+    .refine((val) => Number(val) >= 0, {
+      message: "Price cannot be negative",
+    }),
+
   category: z.string().min(1, "Category is required"),
   description: z
     .string()
@@ -28,24 +40,56 @@ const CreateProductSchema = z.object({
     ),
   tags: z
     .string()
-    .min(1, "At least one tag is required")
-    .max(5, "Maximum of 5 tags allowed"),
+    .transform((val) =>
+      val
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0)
+    )
+    .refine((arr) => arr.length <= 5, {
+      message: "Maximum of 5 tags allowed",
+    })
+    .optional(),
+
   images: z
-    .array(z.union([z.instanceof(File), z.null()]))
-    .refine((arr) => arr.some((file) => file instanceof File), {
+    .array(z.object({ file: z.instanceof(File), url: z.string() }))
+    .refine((arr) => arr.length > 0, {
       message: "At least one image is required",
     }),
-  custom_specifications: z
-    .array(
-      z.object({
-        name: z.string().min(1, "Specification name is required"),
-        value: z.string().min(1, "Specification value is required"),
+
+  custom_specifications: z.array(
+    z
+      .object({
+        name: z.string(),
+        value: z.string(),
       })
-    )
-    .min(1, "At least one specification is required"),
+      .optional()
+      .superRefine((data, ctx) => {
+        if (!data) return;
+        const { name, value } = data;
+
+        if ((name && !value) || (!name && value)) {
+          ctx.addIssue({
+            path: [], // 留空表示整個物件
+            code: z.ZodIssueCode.custom,
+            message: "Name and value must both be filled or both empty",
+          });
+        }
+      })
+  ),
   cash_on_delivery: z.string(),
-  stock: z.number().min(1, "Price is required"),
+
+  stock: z
+    .string()
+    .min(1, "Stock is required")
+    .refine((val) => Number(val) > 0, {
+      message: "Stock must be greater than 0",
+    }),
+
+  discountCode: z.string().optional(),
 });
+
+export type CreateProductSchemaType = z.infer<typeof CreateProductSchema>;
 
 export default function page() {
   const {
@@ -54,24 +98,27 @@ export default function page() {
     control,
     formState: { errors },
     setValue,
+    reset,
   } = useForm({
     resolver: zodResolver(CreateProductSchema),
     defaultValues: {
       title: "",
       description: "",
       tags: "",
-      images: [null],
-      custom_specifications: [{ name: "", value: "" }],
+      images: [],
+      custom_specifications: [],
       cash_on_delivery: "yes",
-      price: 0,
+      price: "",
       category: "",
+      stock: "",
+      discountCode: "",
     },
   });
 
+  const queryClient = useQueryClient();
+
   const [openImageModal, setOpenImageModal] = useState(false);
-  const [isChanged, setIsChanged] = useState(false);
-  const [images, setImages] = useState<(File | null)[]>([null]);
-  const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState<{ file: File; url: string }[]>([]);
 
   const {
     data,
@@ -83,50 +130,49 @@ export default function page() {
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
-  console.log("data", data);
+
+  const { data: discountCodes, isLoading: discountCodesLoading } = useQuery({
+    queryKey: ["discount-codes"],
+    queryFn: getDiscountCodes,
+    staleTime: 5 * 60 * 1000, //cache for 5 minutes
+    retry: 1,
+  });
 
   const categories = data?.categories || [];
-  console.log("categories", categories);
 
-  const handleImageChange = (file: File | null, index: number) => {
+  const createProductMutation = useMutation({
+    mutationFn: (data: CreateProductSchemaType) => createProduct(data),
+    onSuccess: (data) => {
+      console.log("data create successfully", data);
+      toast.success("Product created successfully");
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      reset();
+      setImages([]);
+    },
+  });
+
+  const handleImageChange = (file: File | null) => {
     const updatedImages = [...images];
-
-    updatedImages[index] = file;
-
-    if (index === images.length - 1 && images.length < 8) {
-      updatedImages.push(null);
-    }
-
+    updatedImages.push({ file: file!, url: URL.createObjectURL(file!) });
     setImages(updatedImages);
     setValue("images", updatedImages);
   };
 
   const handleRemoveImage = (index: number) => {
-    setImages((prevImages) => {
-      let updatedImages = [...prevImages];
-
-      if (index === -1) {
-        updatedImages[0] = null;
-      } else {
-        updatedImages.splice(index, 1);
-      }
-
-      if (!updatedImages.includes(null) && updatedImages.length < 8) {
-        updatedImages.push(null);
-      }
-
-      return updatedImages;
-    });
-
-    setValue("images", images);
+    const updatedImages = [...images];
+    updatedImages.splice(index, 1);
+    setImages(updatedImages);
+    setValue("images", updatedImages);
   };
 
   const onSubmit = async (data: any) => {
     console.log(data);
+    createProductMutation.mutate(data);
   };
+
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(onSubmit, (onerror) => console.log(onerror))}
       className="w-full mx-auto p-8 shadow-md rounded-lg text-white"
     >
       <h2 className="text-2xl py-2 font-semibold font-poppins text-white">
@@ -141,29 +187,31 @@ export default function page() {
       {/*Content layout*/}
       <div className="py-4 w-full flex gap-6">
         <div className="w-[35%]">
-          {images.length > 0 && (
-            <ImagePlaceHolder
-              defaultImage={null}
-              size="765 * 850"
-              small={false}
-              index={null}
-              onImageChange={handleImageChange}
-              onRemove={handleRemoveImage}
-              setOpenImageModal={setOpenImageModal}
-            />
-          )}
           <div className="grid grid-cols-2 gap-3 mt-4">
-            {images.slice(1).map((_, index) => (
+            {images.map((image, index) => (
               <ImagePlaceHolder
                 key={index}
                 setOpenImageModal={setOpenImageModal}
+                defaultImage={image.url}
                 size="765 x 850"
-                small
-                index={index + 1}
+                index={index}
                 onImageChange={handleImageChange}
                 onRemove={handleRemoveImage}
               />
             ))}
+            {images.length < 5 && (
+              <ImagePlaceHolder
+                defaultImage={null}
+                size="765 * 850"
+                index={null}
+                onImageChange={handleImageChange}
+                onRemove={handleRemoveImage}
+                setOpenImageModal={setOpenImageModal}
+              />
+            )}
+            {errors.images && (
+              <span className="text-red-500">{errors.images.message}</span>
+            )}
           </div>
         </div>
         <div className="md:w-[65%]">
@@ -211,7 +259,7 @@ export default function page() {
 
               <div className="mt-2">
                 <Input
-                  label="Tags *"
+                  label="Tags * (optional)"
                   placeholder="apple, flagship"
                   {...register("tags", {
                     required: "Separate related product tags with a comma.",
@@ -230,7 +278,9 @@ export default function page() {
               </div>
 
               <div className="mt-2">
-                <label>Cash on delivery *</label>
+                <label className="block font-semibold text-gray-300 mb-1">
+                  Cash on delivery *
+                </label>
                 <select
                   {...register("cash_on_delivery", {
                     required: "Cash on Delivery is required",
@@ -253,7 +303,7 @@ export default function page() {
               </div>
             </div>
 
-            <div className="w-2/4">
+            <div className="w-2/4 flex flex-col">
               <label className="block font-semibold text-gray-300 mb-1">
                 Category *
               </label>
@@ -267,19 +317,26 @@ export default function page() {
                   control={control}
                   rules={{ required: "Category is required" }}
                   render={({ field }) => (
-                    <select
-                      {...field}
-                      className="w-full border outline-none border-gray-300 bg-transparent p-2 rounded-md"
-                    >
-                      <option value="" className="bg-black">
-                        Select Category *
-                      </option>
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
+                    <>
+                      <select
+                        {...field}
+                        className="w-full border outline-none border-gray-300 bg-transparent p-2 rounded-md"
+                      >
+                        <option value="" className="bg-black">
+                          Select Category *
                         </option>
-                      ))}
-                    </select>
+                        {categories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.category && (
+                        <p className="text-red-500 mt-1">
+                          {errors.category.message as string}
+                        </p>
+                      )}
+                    </>
                   )}
                 />
               )}
@@ -293,6 +350,48 @@ export default function page() {
                 {errors.stock && (
                   <span className="text-red-500">{errors.stock.message}</span>
                 )}
+              </div>
+
+              <div className="mt-2">
+                <label className="block font-semibold text-gray-300 mb-1">
+                  Discount code * (optional)
+                </label>
+                {discountCodesLoading ? (
+                  <p>Loading discount codes</p>
+                ) : (
+                  <select
+                    {...register("discountCode")}
+                    className="w-full border outline-none border-gray-300 bg-transparent p-2 rounded-md"
+                  >
+                    <option value="" className="bg-black">
+                      Select Discount Code
+                    </option>
+                    {discountCodes?.data.map((code) => (
+                      <option
+                        key={code.id}
+                        value={code.discountCode}
+                        className="bg-black"
+                      >
+                        {code.title}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {errors.discountCode && (
+                  <span className="text-red-500">
+                    {errors.discountCode.message}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-auto flex justify-end">
+                <button
+                  type="submit"
+                  disabled={createProductMutation.isPending}
+                  className="bg-[#3489FF] text-white py-2 px-4 rounded-md"
+                >
+                  {createProductMutation.isPending ? "Creating..." : "Create"}
+                </button>
               </div>
             </div>
           </div>

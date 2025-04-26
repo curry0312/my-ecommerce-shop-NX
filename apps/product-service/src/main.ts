@@ -13,6 +13,9 @@ const swaggerDocument = require("./swagger-output.json");
 // Routers
 import productRouter from './routes/product.router';
 
+import { createRouteHandler } from "uploadthing/express";
+import { uploadRouter } from '@packages/libs/uploadthing/uploadthing';
+
 const port = process.env.PORT ? Number(process.env.PORT) : 6002;
 
 const app = express();
@@ -29,6 +32,16 @@ app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use(cookie());
 app.use(cookieParser());
+
+app.use(
+    "/api/uploadthing",
+    createRouteHandler({
+      router: uploadRouter,
+      config: {
+        
+      },
+    }),
+  );
 
 app.get("/", (req, res) => {
     res.send("Product service is running");
